@@ -46,15 +46,13 @@ func StartApplication() {
 	grpcListener := m.MatchWithWriters(cmux.HTTP2MatchHeaderFieldSendSettings("content-type", "application/grpc"))
 	httpListener := m.Match(cmux.HTTP1Fast())
 
+	mediaRepository := media2.NewMediaRepository(database)
+	imageUtilsService := image_utils.NewImageUtilsService()
+	mediaService := media.NewMediaService(mediaRepository)
+	mediaGrpcService := media_grpc_service.NewMediaGrpcService(mediaService, imageUtilsService, "temp")
+
 	grpcS := grpc.NewServer()
-	proto.RegisterMediaServiceServer(grpcS,
-		media_grpc_service.NewMediaGrpcService(
-			media.NewMediaService(
-				media2.NewMediaRepository(database)),
-			image_utils.NewImageUtilsService(),
-			"temp",
-		),
-	)
+	proto.RegisterMediaServiceServer(grpcS, mediaGrpcService)
 
 	httpS := &http.Server{
 		Handler: router,
