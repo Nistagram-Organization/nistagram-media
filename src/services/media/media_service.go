@@ -8,6 +8,7 @@ import (
 
 type MediaService interface {
 	Create(*model.Media) (*model.Media, rest_error.RestErr)
+	Get(uint) (*model.Media, rest_error.RestErr)
 }
 
 type mediaService struct {
@@ -22,4 +23,8 @@ func NewMediaService(mediaRepository media.MediaRepository) MediaService {
 
 func (s *mediaService) Create(media *model.Media) (*model.Media, rest_error.RestErr) {
 	return s.mediaRepository.Create(media)
+}
+
+func (s *mediaService) Get(id uint) (*model.Media, rest_error.RestErr) {
+	return s.mediaRepository.Get(id)
 }
