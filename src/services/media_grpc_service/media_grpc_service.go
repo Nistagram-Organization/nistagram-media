@@ -45,3 +45,26 @@ func (s *mediaGrpcService) SaveMedia(ctx context.Context, saveMediaRequest *prot
 
 	return &res, nil
 }
+
+func (s *mediaGrpcService) GetMedia(ctx context.Context, getMediaRequest *proto.GetMediaRequest) (*proto.GetMediaResponse, error) {
+	mediaID := getMediaRequest.GetId()
+
+	mediaEntity, err := s.mediaService.Get(uint(mediaID))
+	if err != nil {
+		return nil, err
+	}
+
+	var imageBase64 string
+	imageBase64, err = s.imageUtilsService.LoadImage(mediaEntity.Path)
+	if err != nil {
+		return nil, err
+	}
+
+	res := proto.GetMediaResponse{
+		Image: &proto.MediaMessage{
+			ImageBase64: imageBase64,
+		},
+	}
+
+	return &res, nil
+}
