@@ -9,13 +9,26 @@ import (
 	"github.com/Nistagram-Organization/nistagram-media/src/utils/image_utils"
 	model "github.com/Nistagram-Organization/nistagram-shared/src/model/media"
 	"github.com/Nistagram-Organization/nistagram-shared/src/proto"
+	"github.com/Nistagram-Organization/nistagram-shared/src/utils/prometheus_handler"
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 	"github.com/soheilhy/cmux"
 	"google.golang.org/grpc"
 	"log"
 	"net"
+	"net/http"
+)
+
+var (
+	router = gin.Default()
 )
 
 func StartApplication() {
+	corsConfig := cors.DefaultConfig()
+	corsConfig.AllowAllOrigins = true
+	corsConfig.AddAllowHeaders("Authorization")
+	router.Use(cors.New(corsConfig))
+
 	database := mysql.NewMySqlDatabaseClient()
 	if err := database.Init(); err != nil {
 		panic(err)
@@ -35,6 +48,7 @@ func StartApplication() {
 	m := cmux.New(l)
 
 	grpcListener := m.MatchWithWriters(cmux.HTTP2MatchHeaderFieldSendSettings("content-type", "application/grpc"))
+	httpListener := m.Match(cmux.HTTP1Fast())
 
 	mediaRepository := media2.NewMediaRepository(database)
 	imageUtilsService := image_utils.NewImageUtilsService()
@@ -44,8 +58,15 @@ func StartApplication() {
 	grpcS := grpc.NewServer()
 	proto.RegisterMediaServiceServer(grpcS, mediaGrpcService)
 
-	go grpcS.Serve(grpcListener)
+	router.GET("/metrics", prometheus_handler.PrometheusGinHandler())
 
-	log.Printf("Running grpc server on port %s", port)
+	httpS := &http.Server{
+		Handler: router,
+	}
+
+	go grpcS.Serve(grpcListener)
+	go httpS.Serve(httpListener)
+
+	log.Printf("Running http and grpc server on port %s", port)
 	m.Serve()
 }
