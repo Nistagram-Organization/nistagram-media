@@ -1,7 +1,6 @@
 package application
 
 import (
-	"fmt"
 	"github.com/Nistagram-Organization/nistagram-media/src/datasources/mysql"
 	media2 "github.com/Nistagram-Organization/nistagram-media/src/repositories/media"
 	"github.com/Nistagram-Organization/nistagram-media/src/services/media"
@@ -40,7 +39,7 @@ func StartApplication() {
 	}
 
 	port := ":8089"
-	l, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1%s", port))
+	l, err := net.Listen("tcp", port)
 	if err != nil {
 		panic(err)
 	}
