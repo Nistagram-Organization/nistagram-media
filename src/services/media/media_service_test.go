@@ -27,7 +27,7 @@ func (suite *MediaServiceUnitTestsSuite) TestNewMediaService() {
 	assert.NotNil(suite.T(), suite.service, "Service is nil")
 }
 
-func (suite *MediaServiceUnitTestsSuite) TestMediaService_Register() {
+func (suite *MediaServiceUnitTestsSuite) TestMediaService_Create() {
 	mediaEntity := model.Media{
 		Path: "temp/slika.jpg",
 	}
@@ -39,3 +39,5 @@ func (suite *MediaServiceUnitTestsSuite) TestMediaService_Register() {
 	assert.Equal(suite.T(), &mediaEntity, retMedia)
 	assert.Equal(suite.T(), nil, createErr)
 }
+
+
