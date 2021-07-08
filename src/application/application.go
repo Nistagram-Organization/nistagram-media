@@ -6,11 +6,13 @@ import (
 	"github.com/Nistagram-Organization/nistagram-media/src/services/media"
 	"github.com/Nistagram-Organization/nistagram-media/src/services/media_grpc_service"
 	"github.com/Nistagram-Organization/nistagram-media/src/utils/image_utils"
+	"github.com/Nistagram-Organization/nistagram-shared/src/datasources"
 	model "github.com/Nistagram-Organization/nistagram-shared/src/model/media"
 	"github.com/Nistagram-Organization/nistagram-shared/src/proto"
 	"github.com/Nistagram-Organization/nistagram-shared/src/utils/prometheus_handler"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/soheilhy/cmux"
 	"google.golang.org/grpc"
 	"log"
@@ -19,22 +21,46 @@ import (
 )
 
 var (
-	router = gin.Default()
+	router        = gin.Default()
+	requestsCount = prometheus_handler.GetHttpRequestsCounter()
+	requestsSize  = prometheus_handler.GetHttpRequestsSize()
+	uniqueUsers   = prometheus_handler.GetUniqueClients()
 )
 
-func StartApplication() {
+func configureCORS() {
 	corsConfig := cors.DefaultConfig()
 	corsConfig.AllowAllOrigins = true
 	corsConfig.AddAllowHeaders("Authorization")
 	router.Use(cors.New(corsConfig))
+}
 
+func setupDatabase() (datasources.DatabaseClient, error) {
 	database := mysql.NewMySqlDatabaseClient()
 	if err := database.Init(); err != nil {
-		panic(err)
+		return nil, err
 	}
 	if err := database.Migrate(
 		&model.Media{},
 	); err != nil {
+		return nil, err
+	}
+	return database, nil
+}
+
+func registerPrometheusMiddleware() {
+	prometheus.Register(requestsCount)
+	prometheus.Register(requestsSize)
+	prometheus.Register(uniqueUsers)
+
+	router.Use(prometheus_handler.PrometheusMiddleware(requestsCount, requestsSize, uniqueUsers))
+}
+
+func StartApplication() {
+	configureCORS()
+	registerPrometheusMiddleware()
+
+	database, err := setupDatabase()
+	if err != nil {
 		panic(err)
 	}
 
